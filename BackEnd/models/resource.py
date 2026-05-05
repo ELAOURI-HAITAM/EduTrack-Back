@@ -23,7 +23,7 @@ class Resource(Base) :
     created_at = Column(DateTime , default=datetime.utcnow())
     
     module = relationship("Module" , back_populates="resources")
-    task = relationship("Task" , back_populates="resource")
+    tasks = relationship("Task" , back_populates="resource")
     
     
     
