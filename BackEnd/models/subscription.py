@@ -16,6 +16,3 @@ class Subscription(Base) :
     
     student = relationship("Student" , back_populates="subscriptions")
     professor = relationship("Professor" , back_populates="subscriptions")
-    
-    
-    

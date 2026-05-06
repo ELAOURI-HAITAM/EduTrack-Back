@@ -22,5 +22,3 @@ class Professor(Base) :
     user = relationship("User", back_populates="prof_data")
     modules = relationship("Module", back_populates="professor")
     subscriptions = relationship("Subscription", back_populates="professor")
-    
-    
