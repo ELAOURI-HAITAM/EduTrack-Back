@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 
 from database.connexion import get_db
 from middleware.role import RoleChecker
 from models.subscription import Subscription
 from models.professor import Professor
+from sqlalchemy.orm import Session, joinedload
 
 
 subscription_router = APIRouter(
@@ -79,15 +80,45 @@ def unfollow_teacher(
         "message": "Unfollowed successfully"
     }
 
-
 @subscription_router.get("/my-subscriptions")
-def get_my_subscriptions(
+def my_subscriptions(
     db: Session = Depends(get_db),
     current_user=Depends(RoleChecker("Student"))
 ):
 
-    subscriptions = db.query(Subscription).filter(
+    subscriptions = db.query(Subscription).options(
+        joinedload(Subscription.professor)
+    ).filter(
         Subscription.student_id == current_user.student_data.id
     ).all()
 
-    return subscriptions
+    return [
+        {
+            "subscription_id": sub.id,
+            "professor_id": sub.professor.id,
+            "first_name": sub.professor.first_name,
+            "last_name": sub.professor.last_name
+        }
+        for sub in subscriptions
+    ]
+
+@subscription_router.get("/professor/subscribers")
+def professor_subscribers(
+    db: Session = Depends(get_db),
+    current_user=Depends(RoleChecker("Professor"))
+):
+
+    subscriptions = db.query(Subscription).options(
+        joinedload(Subscription.student)
+    ).filter(
+        Subscription.professor_id == current_user.prof_data.id
+    ).all()
+
+    return [
+        {
+            "student_id": sub.student.id,
+            "first_name": sub.student.first_name,
+            "last_name": sub.student.last_name
+        }
+        for sub in subscriptions
+    ]
