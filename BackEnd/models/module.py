@@ -7,23 +7,11 @@ from sqlalchemy.orm import relationship
 class Module(Base):
 
     __tablename__ = "modules"
-
     id = Column(Integer, primary_key=True, index=True)
-
     title = Column(String, nullable=False)
-
     description = Column(String, nullable=True)
-
-    professor_id = Column(
-        Integer,
-        ForeignKey("professors.id"),
-        nullable=False
-    )
-
-    created_at = Column(
-        DateTime,
-        default=datetime.utcnow
-    )
+    professor_id = Column(Integer,ForeignKey("professors.id"),nullable=False)
+    created_at = Column(DateTime,default=datetime.utcnow())
 
     professor = relationship(
         "Professor",

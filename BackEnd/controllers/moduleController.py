@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from database.connexion import get_db
+from middleware.auth import get_current_user
 from middleware.role import RoleChecker
 from models.module import Module
 from validations.moduleSchema import (
@@ -20,8 +21,7 @@ module_router = APIRouter(
 def create_module(
     request: CreateModuleRequest,
     db: Session = Depends(get_db),
-    current_user=Depends(RoleChecker("Professor"))
-):
+    current_user=Depends(RoleChecker("Professor"))):
 
     new_module = Module(
         title=request.title,

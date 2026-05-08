@@ -3,9 +3,9 @@ from database.connexion import Base
 import enum
 from sqlalchemy.orm import relationship
 
-class Gender(enum.Enum):
-    Male = "male"
-    female = "female"
+class StudentGender(enum.Enum):
+    Male = "Male"
+    Female = "Female"
 
 
 class Student(Base) :
@@ -15,7 +15,7 @@ class Student(Base) :
     first_name = Column(String , index =True ,nullable=True)
     last_name = Column(String , index =True , nullable=True)
     birth_date = Column(Date , nullable=True  , index = True  )
-    gender = Column(Enum(Gender) , nullable=True)
+    gender = Column(Enum(StudentGender) , nullable=True)
     user_id = Column(Integer , ForeignKey("users.id" , ondelete="CASCADE"))
     
     user = relationship("User", back_populates="student_data")
