@@ -6,7 +6,7 @@ load_dotenv()
 
 secret_key =  os.getenv("SECRET_KEY")
 algorithm = os.getenv("ALGORITHM")
-ACESS_TOKEN_EXPIRES_MINUTES = 60
+ACESS_TOKEN_EXPIRES_MINUTES = 120
 def access_token(data : dict):
     to_encode = data.copy()
     expires = datetime.utcnow() + timedelta(minutes=ACESS_TOKEN_EXPIRES_MINUTES)

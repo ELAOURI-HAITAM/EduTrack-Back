@@ -4,6 +4,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from database.connexion import get_db
 from middleware.role import RoleChecker
+from models.professor import Professor
 from models.subscription import Subscription
 from models.module import Module
 from models.resource import Resource
@@ -57,3 +58,9 @@ def get_student_stats(current_user = Depends(RoleChecker("Student")) , db : Sess
             
         }
     }
+
+
+@student_router.get("/all-profs")
+def get_all_profs(current_user = Depends(RoleChecker("Student")) , db : Session = Depends(get_db)) :
+    professors = db.query(Professor).all()
+    return professors

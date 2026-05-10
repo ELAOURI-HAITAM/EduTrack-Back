@@ -1,11 +1,13 @@
 import os
 import shutil
+from typing import Optional
 import uuid
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
 from sqlalchemy.orm import Session
 from database.connexion import get_db
 from middleware.role import RoleChecker
 from models.module import Module
+from models.professor import Professor
 from models.resource import Resource
 
 
@@ -49,7 +51,78 @@ def upload_file(
     db.refresh(new_resource)
     return {"message" : "file added successfully " , "resource" : new_resource}
 
+@resource_router.get("/my-resources")
+def get_all_assignments(current_user = Depends(RoleChecker("Professor")) , db : Session = Depends(get_db)) : 
+    resources = db.query(Resource , Module.title.label("module_title")).join(Module , Resource.module_id == Module.id).filter(Module.professor_id == current_user.prof_data.id).all();
+    result = []
+    for resource,module_title in resources : 
+        result.append({
+            "id": resource.id,
+            "title": resource.title,
+            "task_type": resource.task_type,
+            "file_url": resource.file_url,
+            "estimated_minutes": resource.estimated_minutes,
+            "module_id": resource.module_id,
+            "module_title": module_title
+        })
+    return result
+@resource_router.get("/{resource_id}")
+def get_assignment_details(resource_id : int ,current_user = Depends(RoleChecker("Professor")) , db : Session = Depends(get_db)) : 
+    row = db.query(Resource , Module.title.label("module_title")).join(Module , Resource.module_id == Module.id).filter(Module.professor_id == current_user.prof_data.id , Resource.id == resource_id).first()
+    if not row: 
+        raise HTTPException(status_code=404 , detail="Resource not found ")
+    resource, module_title = row
+    return {
+        "id": resource.id,
+        "title": resource.title,
+        "task_type": resource.task_type,
+        "file_url": resource.file_url,
+        "estimated_minutes": resource.estimated_minutes,
+        "module_id": resource.module_id,
+        "module_title": module_title,
+    }
 
+@resource_router.put("/update/{resource_id}")
+def update_resource(
+    resource_id: int,
+    title: str = Form(...),
+    task_type: str = Form(...),
+    estimated_minutes: int = Form(...),
+    file_url: Optional[UploadFile] = File(None), 
+    current_user = Depends(RoleChecker("Professor")), 
+    db: Session = Depends(get_db)
+):
+    resource = db.query(Resource).filter(Resource.id == resource_id).first()
+    if not resource:
+        raise HTTPException(status_code=404, detail="Resource not found")
+
+    module = db.query(Module).filter(Module.id == resource.module_id).first()
+    if not module or module.professor_id != current_user.prof_data.id:
+        raise HTTPException(status_code=403, detail="You are not authorized to update this resource")
+
+    resource.title = title
+    resource.task_type = task_type
+    resource.estimated_minutes = estimated_minutes
+
+    if file_url and file_url.filename:
+        if resource.file_url:
+            old_file_path = resource.file_url.lstrip("/") 
+            if os.path.exists(old_file_path):
+                os.remove(old_file_path)
+
+        file_extension = os.path.splitext(file_url.filename)[1]
+        unique_filename = f"{uuid.uuid4()}{file_extension}"
+        new_file_path = os.path.join("uploads", unique_filename)
+
+        with open(new_file_path, "wb") as buffer:
+            shutil.copyfileobj(file_url.file, buffer)
+        
+        resource.file_url = f"/uploads/{unique_filename}"
+
+    db.commit()
+    db.refresh(resource)
+    
+    return {"message": "Resource updated successfully", "resource": resource}
 @resource_router.delete("/remove/{resource_id}")
 def remove_resource(resource_id : int ,current_user=Depends(RoleChecker("Professor")) , db : Session=Depends(get_db)):
     resource = db.query(Resource).filter(Resource.id == resource_id).first()

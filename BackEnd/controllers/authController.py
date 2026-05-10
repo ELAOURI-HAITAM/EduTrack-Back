@@ -264,3 +264,4 @@ def change_password(request : ChangePasswordRequest ,user_id : int = Depends(get
     db.commit()
     return {"message" : "password changed successfully "}
     
+

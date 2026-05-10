@@ -80,7 +80,7 @@ def unfollow_teacher(
         "message": "Unfollowed successfully"
     }
 
-@subscription_router.get("/my-subscriptions")
+@subscription_router.get("/following")
 def my_subscriptions(
     db: Session = Depends(get_db),
     current_user=Depends(RoleChecker("Student"))
@@ -97,12 +97,14 @@ def my_subscriptions(
             "subscription_id": sub.id,
             "professor_id": sub.professor.id,
             "first_name": sub.professor.first_name,
-            "last_name": sub.professor.last_name
+            "last_name": sub.professor.last_name,
+            "email" : sub.professor.user.email,
+            "phone" : sub.professor.phone_number
         }
         for sub in subscriptions
     ]
 
-@subscription_router.get("/professor/subscribers")
+@subscription_router.get("/followers")
 def professor_subscribers(
     db: Session = Depends(get_db),
     current_user=Depends(RoleChecker("Professor"))
@@ -118,7 +120,10 @@ def professor_subscribers(
         {
             "student_id": sub.student.id,
             "first_name": sub.student.first_name,
-            "last_name": sub.student.last_name
+            "last_name": sub.student.last_name,
+            "email" : sub.student.user.email,
+            "gender" : sub.student.gender,
+            "date" : sub.student.birth_date,
         }
         for sub in subscriptions
     ]

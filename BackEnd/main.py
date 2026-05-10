@@ -16,6 +16,7 @@ from controllers.subscriptionsController import subscription_router
 from controllers.professorController import professor_router
 from controllers.resourceController import resource_router
 from controllers.studentController import student_router
+from controllers.taskController import task_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -37,6 +38,7 @@ if not os.path.exists("uploads"):
 app.mount("/uploads" , StaticFiles(directory="uploads") , name="uploads")
 app.include_router(authController.auth_router)
 app.include_router(module_router)
+app.include_router(task_router)
 app.include_router(subscription_router)
 app.include_router(professor_router)
 app.include_router(resource_router)

@@ -22,7 +22,7 @@ class Task(Base) :
     comment = Column(Text , nullable=True)
     student_id = Column(Integer , ForeignKey("students.id"))
     resource_id = Column(Integer , ForeignKey("resources.id"))
-    completed_at = Column(DateTime , default = datetime.utcnow())
+    completed_at = Column(DateTime , default=datetime.utcnow)
     
     student = relationship("Student" , back_populates="tasks")
     resource = relationship("Resource" , back_populates="tasks")

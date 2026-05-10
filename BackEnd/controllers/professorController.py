@@ -8,6 +8,8 @@ from database.connexion import get_db
 from middleware.role import RoleChecker
 from models.task import Task
 from models.resource import Resource
+from models.user import User
+from sqlalchemy import literal
 professor_router = APIRouter(
     prefix = "/professors"
 )
@@ -53,11 +55,58 @@ def get_prof_stats(current_user = Depends(RoleChecker("Professor")), db: Session
         "stats": {
             "total_modules": module_count,
             "total_subs": total_subs,
-            "total_genders": {"males": males, "females": females}
+            "total_genders": {"males": males, "females": females},
+            "total_tasks" : total_tasks,
         },
         "difficulty_analysis": {
             "counts": difficulty_counts,
             "percentages": percentages,
             "hard_comments": hard_comments
         }
+    }
+
+@professor_router.get("/student-tracking")
+def get_professor_tracking(current_user = Depends(RoleChecker("Professor")), db: Session = Depends(get_db)):
+    prof_id = current_user.prof_data.id
+    name = (Student.first_name + literal(" ") + Student.last_name).label("student_name")
+    tracking_data = db.query(
+        Task.id,
+        Task.actual_minutes,
+        Task.difficulty,
+        Task.comment,
+        Task.completed_at,
+        Resource.title.label("resource_title"),
+        Resource.estimated_minutes.label("estimated_minutes"),
+        name
+    ).join(Resource, Task.resource_id == Resource.id)\
+     .join(Module, Resource.module_id == Module.id)\
+     .join(Student, Task.student_id == Student.id)\
+     .join(User, Student.user_id == User.id)\
+     .filter(Module.professor_id == prof_id)\
+     .order_by(Task.completed_at.desc())\
+     .all()
+
+    tracking = []
+    for row in tracking_data:
+        difficulty = row.difficulty.value if hasattr(row.difficulty, "value") else row.difficulty
+        tracking.append({
+            "id": row.id,
+            "actual_minutes": row.actual_minutes,
+            "difficulty": difficulty,
+            "comment": row.comment,
+            "completed_at": row.completed_at,
+            "resource_title": row.resource_title,
+            "estimated_minutes": row.estimated_minutes,
+            "student_name": row.student_name
+        })
+
+    total_completed = len(tracking)
+    hard_tasks_count = len([t for t in tracking if t["difficulty"] == "Hard"])
+    
+    return {
+        "summary": {
+            "total_submissions": total_completed,
+            "struggling_students": hard_tasks_count
+        },
+        "tracking": tracking
     }
