@@ -6,6 +6,8 @@ from sqlalchemy.orm import Session
 from database.connexion import get_db
 from middleware.role import RoleChecker
 from models.module import Module
+from models.notification import Notification
+from models.professor import Professor
 from models.resource import Resource
 from models.subscription import Subscription
 from models.task import Task
@@ -21,27 +23,37 @@ from sqlalchemy.orm import joinedload
 
 @task_router.get("/todo")
 def get_student_todo(current_user=Depends(RoleChecker("Student")), db: Session = Depends(get_db)): 
-    completed_resources_ids = db.query(Task.resource_id).filter(Task.student_id == current_user.student_data.id).all()
-    completed_ids = [res[0] for res in completed_resources_ids]
+    student_id = current_user.student_data.id 
+    print("STUDENT ID : ",student_id) 
+    
+    completed_ids = db.query(Task.resource_id).filter(
+        Task.student_id == student_id,
+        Task.resource_id.is_not(None)
+    ).all()
+    completed_ids_list = [res[0] for res in completed_ids if res[0] is not None]
 
-    query = db.query(Resource).options(joinedload(Resource.module)).join(Module).join(
-        Subscription, Module.professor_id == Subscription.professor_id
-    ).filter(Subscription.student_id == current_user.student_data.id)
+    query = db.query(Resource).join(
+        Module, Resource.module_id == Module.id 
+    ).join(
+        Subscription, Module.professor_id == Subscription.professor_id 
+    ).filter(
+        Subscription.student_id == student_id
+    )
 
-    if completed_ids:
-        query = query.filter(~Resource.id.in_(completed_ids))
+    if completed_ids_list:
+        query = query.filter(Resource.id.notin_(completed_ids_list))
 
-    todo_resources = query.all()
+    todo_resources = query.options(joinedload(Resource.module)).distinct().all()
 
     return [
         {
             "resource_id": res.id,
             "title": res.title,
-            "task_type": res.task_type,
+            "task_type": res.task_type.value if res.task_type else None, 
             "estimated_minutes": res.estimated_minutes,
             "file_url": res.file_url,
             "module_id": res.module_id,
-            "module_title": res.module.title  
+            "module_title": res.module.title if res.module else "No Module" 
         }
         for res in todo_resources
     ]
@@ -74,7 +86,20 @@ def submit_task(request: TaskRequest, current_user = Depends(RoleChecker("Studen
     db.add(new_task)
     db.commit()
     db.refresh(new_task)
-    return {"message": "Great job! Progress saved.", "task": new_task}
+
+    if request.comment : 
+        res = db.query(Resource).filter(Resource.id == request.resource_id).first()
+        module = db.query(Module).filter(Module.id == res.module_id).first()
+        professor_user_id = db.query(Professor).filter(Professor.id == module.professor_id).first().user_id
+        new_notification = Notification(
+            user_id = professor_user_id,
+            title = "New Student FeedBack",
+            message = f"A Student Left A Comment on : {res.title}"
+        )
+        db.add(new_notification)
+        db.commit()
+
+    return {"message": "Great job! Progress saved.", "task": new_task , "notification" : "notification send to profs"}
 
 
 

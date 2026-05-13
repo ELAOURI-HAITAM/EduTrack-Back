@@ -7,8 +7,11 @@ from sqlalchemy.orm import Session
 from database.connexion import get_db
 from middleware.role import RoleChecker
 from models.module import Module
+from models.notification import Notification
 from models.professor import Professor
+from models.student import Student
 from models.resource import Resource
+from models.subscription import Subscription
 
 
 resource_router = APIRouter(
@@ -49,7 +52,23 @@ def upload_file(
     db.add(new_resource)
     db.commit()
     db.refresh(new_resource)
-    return {"message" : "file added successfully " , "resource" : new_resource}
+
+
+
+    subscriptions = db.query(Subscription).filter(Subscription.professor_id == current_user.prof_data.id).all()
+
+    for sub in subscriptions : 
+        student_user_id = db.query(Student).filter(Student.id == sub.student_id).first().user_id
+        professor_name = f"{sub.professor.first_name} {sub.professor.last_name}"
+        new_notification = Notification(
+            user_id = student_user_id,
+            title = "New Resource Added",
+            message = f"New Assignment Added From {professor_name}"
+        )
+        db.add(new_notification)
+    db.commit()
+
+    return {"message" : "file added successfully " , "resource" : new_resource , "notification" : "notifications sent to students"}
 
 @resource_router.get("/my-resources")
 def get_all_assignments(current_user = Depends(RoleChecker("Professor")) , db : Session = Depends(get_db)) : 
@@ -66,6 +85,8 @@ def get_all_assignments(current_user = Depends(RoleChecker("Professor")) , db : 
             "module_title": module_title
         })
     return result
+
+    
 @resource_router.get("/{resource_id}")
 def get_assignment_details(resource_id : int ,current_user = Depends(RoleChecker("Professor")) , db : Session = Depends(get_db)) : 
     row = db.query(Resource , Module.title.label("module_title")).join(Module , Resource.module_id == Module.id).filter(Module.professor_id == current_user.prof_data.id , Resource.id == resource_id).first()

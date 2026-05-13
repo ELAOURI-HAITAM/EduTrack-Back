@@ -1,5 +1,5 @@
 from datetime import datetime
-from sqlalchemy import Column, DateTime, Integer , ForeignKey
+from sqlalchemy import Boolean, Column, DateTime, Integer , ForeignKey
 from database.connexion import Base
 from sqlalchemy.orm import relationship
 
@@ -12,7 +12,8 @@ class Subscription(Base) :
     id = Column(Integer , primary_key =True , index=True)
     student_id = Column(Integer , ForeignKey("students.id"))
     professor_id = Column(Integer , ForeignKey("professors.id"))
-    created_at = Column(DateTime , default=datetime.utcnow())
+    created_at = Column(DateTime , default=datetime.utcnow)
+    is_follow = Column(Boolean , default=False)
     
     student = relationship("Student" , back_populates="subscriptions")
     professor = relationship("Professor" , back_populates="subscriptions")

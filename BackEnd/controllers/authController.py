@@ -46,7 +46,7 @@ async def send_otp(request: EmailRequest, db: Session = Depends(get_db)):
 
     otp_code = str(random.randint(100000, 999999))
     user.otp = otp_code
-    user.otp_expires_at = datetime.utcnow() + timedelta(minutes=5)
+    user.otp_expires_at = datetime.utcnow + timedelta(minutes=5)
     db.commit()
 
     message = MessageSchema(
@@ -66,7 +66,7 @@ def verify(request: VerifyOTPRequest,response : Response, db: Session = Depends(
     if not user:
         raise HTTPException(status_code=404, detail="email not found")
 
-    if not user.otp_expires_at or user.otp_expires_at < datetime.utcnow():
+    if not user.otp_expires_at or user.otp_expires_at < datetime.utcnow:
         raise HTTPException(status_code=404, detail="Code expired")
 
     

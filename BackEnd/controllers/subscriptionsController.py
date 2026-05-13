@@ -44,7 +44,8 @@ def subscribe_teacher(
 
     new_subscription = Subscription(
         student_id=current_user.student_data.id,
-        professor_id=professor_id
+        professor_id=professor_id,
+        is_follow = True
     )
 
     db.add(new_subscription)
@@ -95,6 +96,7 @@ def my_subscriptions(
     return [
         {
             "subscription_id": sub.id,
+            "is_follow" : sub.is_follow,
             "professor_id": sub.professor.id,
             "first_name": sub.professor.first_name,
             "last_name": sub.professor.last_name,
@@ -103,6 +105,10 @@ def my_subscriptions(
         }
         for sub in subscriptions
     ]
+
+
+
+
 
 @subscription_router.get("/followers")
 def professor_subscribers(

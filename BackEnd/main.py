@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+from controllers.notificationController import notification_router
 from database.connexion import engine, Base
 from controllers import authController
+from models import notification
 import models.user
 import models.student
 import models.professor
@@ -8,6 +10,7 @@ import models.subscription
 import models.task
 import models.resource
 import models.module
+import models.notification
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 import os
@@ -17,6 +20,7 @@ from controllers.professorController import professor_router
 from controllers.resourceController import resource_router
 from controllers.studentController import student_router
 from controllers.taskController import task_router
+from controllers.notificationController import notification_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -43,3 +47,4 @@ app.include_router(subscription_router)
 app.include_router(professor_router)
 app.include_router(resource_router)
 app.include_router(student_router)
+app.include_router(notification_router)

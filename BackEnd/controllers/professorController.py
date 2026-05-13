@@ -20,6 +20,7 @@ def get_prof_stats(current_user = Depends(RoleChecker("Professor")), db: Session
     professor_id = current_user.prof_data.id
 
     module_count = db.query(Module).filter(Module.professor_id == professor_id).count()
+    resource_count = db.query(Resource).join(Module).filter(Module.professor_id == professor_id).count()
     subscribes_query = db.query(Student).join(Subscription).filter(Subscription.professor_id == professor_id)
     
     total_subs = subscribes_query.count()
@@ -27,7 +28,7 @@ def get_prof_stats(current_user = Depends(RoleChecker("Professor")), db: Session
     females = subscribes_query.filter(Student.gender == StudentGender.Female.value).count()
     
     tasks = db.query(Task).join(Resource).join(Module).filter(Module.professor_id == professor_id).all()
-    total_tasks = len(tasks)
+    total_submissions = len(tasks)
     
     difficulty_counts = {"Easy": 0, "Medium": 0, "Hard": 0}
     hard_comments = []
@@ -47,16 +48,18 @@ def get_prof_stats(current_user = Depends(RoleChecker("Professor")), db: Session
             })
     
     percentages = {
-        key: round((value / total_tasks * 100), 2) if total_tasks > 0 else 0 
+        key: round((value / total_submissions * 100), 2) if total_submissions > 0 else 0 
         for key, value in difficulty_counts.items()
     }
 
     return {
         "stats": {
             "total_modules": module_count,
+            "total_resources": resource_count,
             "total_subs": total_subs,
             "total_genders": {"males": males, "females": females},
-            "total_tasks" : total_tasks,
+            "total_tasks" : resource_count,
+            "total_submissions": total_submissions,
         },
         "difficulty_analysis": {
             "counts": difficulty_counts,
@@ -69,6 +72,7 @@ def get_prof_stats(current_user = Depends(RoleChecker("Professor")), db: Session
 def get_professor_tracking(current_user = Depends(RoleChecker("Professor")), db: Session = Depends(get_db)):
     prof_id = current_user.prof_data.id
     name = (Student.first_name + literal(" ") + Student.last_name).label("student_name")
+    gender = (Student.gender).label("student_gender")
     tracking_data = db.query(
         Task.id,
         Task.actual_minutes,
@@ -77,7 +81,7 @@ def get_professor_tracking(current_user = Depends(RoleChecker("Professor")), db:
         Task.completed_at,
         Resource.title.label("resource_title"),
         Resource.estimated_minutes.label("estimated_minutes"),
-        name
+        name,gender
     ).join(Resource, Task.resource_id == Resource.id)\
      .join(Module, Resource.module_id == Module.id)\
      .join(Student, Task.student_id == Student.id)\
@@ -97,7 +101,8 @@ def get_professor_tracking(current_user = Depends(RoleChecker("Professor")), db:
             "completed_at": row.completed_at,
             "resource_title": row.resource_title,
             "estimated_minutes": row.estimated_minutes,
-            "student_name": row.student_name
+            "student_name": row.student_name,
+            "student_gender" : row.student_gender
         })
 
     total_completed = len(tracking)
