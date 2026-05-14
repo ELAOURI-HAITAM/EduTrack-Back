@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import email
 import random
 from typing import Union
 
@@ -27,15 +28,55 @@ auth_router = APIRouter(prefix="/users")
 
 @auth_router.post("/add")
 def store(request: EmailRequest, db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == request.email).first()
-    if user:
-        return {"messsage": "email Already Exists"}
 
-    new_user = User(email=request.email)
+    domain = request.email.split("@")[-1]
+
+    allowed_domains = [
+    "edu.umi.ac.ma",
+    "edu.ac.ma",
+    "prof.edu.ac.ma",
+    "student.edu.ac.ma",
+    "gmail.com"
+    ]   
+
+    if domain not in allowed_domains:
+        raise HTTPException(
+        status_code=400,
+        detail="Invalid email domain"
+    )
+
+    user = db.query(User).filter(User.email == request.email).first()
+
+    if user:
+        raise HTTPException(
+            status_code=400,
+            detail="Email already exists"
+        )
+
+    if domain == "prof.edu.ac.ma":
+        role = "Professor"
+
+    elif domain == "edu.umi.ac.ma":
+        role = "Student"
+    elif domain == "gmail.com" : 
+        role = "Professor"
+
+    else:
+        role = "user"
+
+
+    new_user = User(
+        email = request.email,
+        role = role
+    )
     db.add(new_user)
     db.commit()
+    db.refresh(new_user)
 
-    return {"message": "user added successfully "}
+    return {
+        "message": "User added successfully",
+        "role": role
+    }
 
 
 @auth_router.post("/send-otp")
@@ -46,7 +87,7 @@ async def send_otp(request: EmailRequest, db: Session = Depends(get_db)):
 
     otp_code = str(random.randint(100000, 999999))
     user.otp = otp_code
-    user.otp_expires_at = datetime.utcnow + timedelta(minutes=5)
+    user.otp_expires_at = datetime.utcnow() + timedelta(minutes=5)
     db.commit()
 
     message = MessageSchema(
@@ -66,7 +107,7 @@ def verify(request: VerifyOTPRequest,response : Response, db: Session = Depends(
     if not user:
         raise HTTPException(status_code=404, detail="email not found")
 
-    if not user.otp_expires_at or user.otp_expires_at < datetime.utcnow:
+    if not user.otp_expires_at or user.otp_expires_at < datetime.utcnow():
         raise HTTPException(status_code=404, detail="Code expired")
 
     
