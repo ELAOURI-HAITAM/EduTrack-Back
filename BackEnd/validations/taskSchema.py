@@ -4,8 +4,8 @@
 from pydantic import BaseModel
 
 
-class TaskRequest(BaseModel):
+class CompleteTaskRequest(BaseModel):
     actual_minutes : int
     difficulty : str
     comment : str = None
-    resource_id : int
+    task_id : int

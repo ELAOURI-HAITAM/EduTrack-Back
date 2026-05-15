@@ -6,8 +6,8 @@ from models.student import Student, StudentGender
 from models.subscription import Subscription
 from database.connexion import get_db
 from middleware.role import RoleChecker
+from models.completedTask import CompletedTask
 from models.task import Task
-from models.resource import Resource
 from models.user import User
 from sqlalchemy import literal
 professor_router = APIRouter(
@@ -20,14 +20,14 @@ def get_prof_stats(current_user = Depends(RoleChecker("Professor")), db: Session
     professor_id = current_user.prof_data.id
 
     module_count = db.query(Module).filter(Module.professor_id == professor_id).count()
-    resource_count = db.query(Resource).join(Module).filter(Module.professor_id == professor_id).count()
+    task_count = db.query(Task).join(Module).filter(Module.professor_id == professor_id).count()
     subscribes_query = db.query(Student).join(Subscription).filter(Subscription.professor_id == professor_id)
     
     total_subs = subscribes_query.count()
     males = subscribes_query.filter(Student.gender == StudentGender.Male.value).count()
     females = subscribes_query.filter(Student.gender == StudentGender.Female.value).count()
     
-    tasks = db.query(Task).join(Resource).join(Module).filter(Module.professor_id == professor_id).all()
+    tasks = db.query(CompletedTask).join(Task).join(Module).filter(Module.professor_id == professor_id).all()
     total_submissions = len(tasks)
     
     difficulty_counts = {"Easy": 0, "Medium": 0, "Hard": 0}
@@ -42,7 +42,7 @@ def get_prof_stats(current_user = Depends(RoleChecker("Professor")), db: Session
         if status == "Hard" and task.comment: 
             hard_comments.append({
                 "student_name": f"{task.student.first_name} {task.student.last_name}",
-                "resource_title": task.resource.title,
+                "task_title": task.task.title,
                 "comment": task.comment,
                 "date": task.completed_at
             })
@@ -55,10 +55,10 @@ def get_prof_stats(current_user = Depends(RoleChecker("Professor")), db: Session
     return {
         "stats": {
             "total_modules": module_count,
-            "total_resources": resource_count,
+            "total_tasks": task_count,
             "total_subs": total_subs,
             "total_genders": {"males": males, "females": females},
-            "total_tasks" : resource_count,
+            "total_tasks" : task_count,
             "total_submissions": total_submissions,
         },
         "difficulty_analysis": {
@@ -74,20 +74,20 @@ def get_professor_tracking(current_user = Depends(RoleChecker("Professor")), db:
     name = (Student.first_name + literal(" ") + Student.last_name).label("student_name")
     gender = (Student.gender).label("student_gender")
     tracking_data = db.query(
-        Task.id,
-        Task.actual_minutes,
-        Task.difficulty,
-        Task.comment,
-        Task.completed_at,
-        Resource.title.label("resource_title"),
-        Resource.estimated_minutes.label("estimated_minutes"),
+        CompletedTask.id,
+        CompletedTask.actual_minutes,
+        CompletedTask.difficulty,
+        CompletedTask.comment,
+        CompletedTask.completed_at,
+        Task.title.label("task_title"),
+        Task.estimated_minutes.label("estimated_minutes"),
         name,gender
-    ).join(Resource, Task.resource_id == Resource.id)\
-     .join(Module, Resource.module_id == Module.id)\
-     .join(Student, Task.student_id == Student.id)\
+    ).join(Task, CompletedTask.task_id == Task.id)\
+     .join(Module, Task.module_id == Module.id)\
+     .join(Student, CompletedTask.student_id == Student.id)\
      .join(User, Student.user_id == User.id)\
      .filter(Module.professor_id == prof_id)\
-     .order_by(Task.completed_at.desc())\
+     .order_by(CompletedTask.completed_at.desc())\
      .all()
 
     tracking = []
@@ -99,7 +99,7 @@ def get_professor_tracking(current_user = Depends(RoleChecker("Professor")), db:
             "difficulty": difficulty,
             "comment": row.comment,
             "completed_at": row.completed_at,
-            "resource_title": row.resource_title,
+            "task_title": row.task_title,
             "estimated_minutes": row.estimated_minutes,
             "student_name": row.student_name,
             "student_gender" : row.student_gender

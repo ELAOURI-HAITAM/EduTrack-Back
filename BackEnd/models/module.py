@@ -18,8 +18,8 @@ class Module(Base):
         back_populates="modules"
     )
 
-    resources = relationship(
-        "Resource",
+    tasks = relationship(
+        "Task",
         back_populates="module",
         cascade="all, delete"
     )

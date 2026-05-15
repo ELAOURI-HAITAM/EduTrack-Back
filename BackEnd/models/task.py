@@ -1,14 +1,13 @@
-from datetime import datetime 
+from datetime import datetime
 import enum
-from sqlalchemy import Column,Enum, DateTime, Integer, String, ForeignKey, Text
+from sqlalchemy import Column,Enum, DateTime, Integer, String  , ForeignKey
 from database.connexion import Base
 from sqlalchemy.orm import relationship
 
 
-class Difficulty(enum.Enum):
-    Easy = "Easy"
-    Medium = "Medium"
-    Hard = "Hard"
+class TaskType(enum.Enum):
+    Exercice = "Exercice"
+    Course = "Course"
 
 
 
@@ -17,15 +16,14 @@ class Task(Base) :
 
     id = Column(Integer , primary_key =True , index=True)
     title = Column(String , nullable=True)
-    actual_minutes = Column(Integer)
-    difficulty = Column(Enum(Difficulty))
-    comment = Column(Text , nullable=True)
-    student_id = Column(Integer , ForeignKey("students.id"))
-    resource_id = Column(Integer , ForeignKey("resources.id"))
-    completed_at = Column(DateTime , default=datetime.utcnow)
+    file_url = Column(String)
+    task_type = Column(Enum(TaskType))
+    estimated_minutes = Column(Integer)
+    module_id = Column(Integer , ForeignKey("modules.id"))
+    created_at = Column(DateTime , default=datetime.utcnow())
     
-    student = relationship("Student" , back_populates="tasks")
-    resource = relationship("Resource" , back_populates="tasks")
+    module = relationship("Module" , back_populates="tasks")
+    completed_tasks = relationship("CompletedTask" , back_populates="task")
     
     
     

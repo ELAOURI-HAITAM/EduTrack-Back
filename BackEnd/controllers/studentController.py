@@ -7,8 +7,8 @@ from middleware.role import RoleChecker
 from models.professor import Professor
 from models.subscription import Subscription
 from models.module import Module
-from models.resource import Resource
 from models.task import Task
+from models.completedTask import CompletedTask
 student_router = APIRouter(
     prefix = "/students"
 )
@@ -24,35 +24,35 @@ def get_student_stats(current_user = Depends(RoleChecker("Student")) , db : Sess
         Subscription, Module.professor_id == Subscription.professor_id
     ).filter(Subscription.student_id == student_id).count()
     
-    completed_resources = db.query(Task.resource_id).filter(
-        Task.student_id == student_id
+    completed_tasks = db.query(CompletedTask.task_id).filter(
+        CompletedTask.student_id == student_id
     ).distinct().count()
     
-    subscribed_resources_query = db.query(Resource.id).join(
-        Module, Resource.module_id == Module.id
+    subscribed_tasks_query = db.query(Task.id).join(
+        Module, Task.module_id == Module.id
     ).join(
         Subscription, Module.professor_id == Subscription.professor_id
     ).filter(
         Subscription.student_id == student_id
     )
     
-    completed_resources_query = db.query(Task.resource_id).filter(
-        Task.student_id == student_id
+    completed_tasks_query = db.query(CompletedTask.task_id).filter(
+        CompletedTask.student_id == student_id
     )
     
-    total_resources = subscribed_resources_query.union(completed_resources_query).count()
+    total_tasks = subscribed_tasks_query.union(completed_tasks_query).count()
     
     completion_rate = 0
-    if total_resources > 0 :
-        completion_rate = round((completed_resources / total_resources) * 100 , 2)
+    if total_tasks > 0 :
+        completion_rate = round((completed_tasks / total_tasks) * 100 , 2)
         
     time_data = db.query(
-        func.sum(Resource.estimated_minutes), 
-        func.sum(Task.actual_minutes)
-    ).select_from(Task).join(
-        Resource, Task.resource_id == Resource.id
+        func.sum(Task.estimated_minutes), 
+        func.sum(CompletedTask.actual_minutes)
+    ).select_from(CompletedTask).join(
+        Task, CompletedTask.task_id == Task.id
     ).filter(
-        Task.student_id == student_id
+        CompletedTask.student_id == student_id
     ).first()
     
     estimed_sum = time_data[0] or 0
@@ -63,8 +63,8 @@ def get_student_stats(current_user = Depends(RoleChecker("Student")) , db : Sess
             "total_profs" : total_profs,
             "total_modules" : total_modules,
             "progress" : {
-               "total_resources" : total_resources,
-               "completed" : completed_resources,
+               "total_tasks" : total_tasks,
+               "completed" : completed_tasks,
                "percentage" : completion_rate
             },
             "time_analysis" : {

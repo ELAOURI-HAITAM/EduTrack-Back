@@ -32,11 +32,8 @@ def store(request: EmailRequest, db: Session = Depends(get_db)):
     domain = request.email.split("@")[-1]
 
     allowed_domains = [
-    "edu.umi.ac.ma",
-    "edu.ac.ma",
     "prof.edu.ac.ma",
     "student.edu.ac.ma",
-    "gmail.com"
     ]   
 
     if domain not in allowed_domains:
@@ -56,13 +53,9 @@ def store(request: EmailRequest, db: Session = Depends(get_db)):
     if domain == "prof.edu.ac.ma":
         role = "Professor"
 
-    elif domain == "edu.umi.ac.ma":
+    elif domain == "prof.edu.ac.ma":
         role = "Student"
-    elif domain == "gmail.com" : 
-        role = "Professor"
-
-    else:
-        role = "user"
+    
 
 
     new_user = User(

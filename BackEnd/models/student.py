@@ -20,7 +20,7 @@ class Student(Base) :
     
     user = relationship("User", back_populates="student_data")
     subscriptions = relationship("Subscription", back_populates="student")
-    tasks = relationship("Task", back_populates="student")
+    completed_tasks = relationship("CompletedTask", back_populates="student")
 
     
         
