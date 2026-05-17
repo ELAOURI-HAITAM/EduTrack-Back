@@ -77,6 +77,8 @@ async def send_otp(request: EmailRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == request.email).first()
     if not user:
         raise HTTPException(status_code=404, detail="Email Not Found ")
+    if user.password : 
+        raise HTTPException(status_code=404, detail="You Already Have An Account ")
 
     otp_code = str(random.randint(100000, 999999))
     user.otp = otp_code

@@ -104,6 +104,12 @@ def get_assignment_details(resource_id : int ,current_user = Depends(RoleChecker
         "module_title": module_title,
     }
 
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from sqlalchemy.orm import Session
+import os
+import uuid
+import shutil
+
 @task_router.put("/update/{resource_id}")
 def update_resource(
     resource_id: int,
@@ -141,10 +147,25 @@ def update_resource(
         
         task.file_url = f"/uploads/{unique_filename}"
 
+  
+    subscribers = db.query(Subscription).filter(Subscription.professor_id == current_user.prof_data.id).all()
+    
+
+    for sub in subscribers:
+        new_notification = Notification(
+          
+            receiver_id = sub.student.user_id, 
+            message = f"Le professeur a mis à jour la ressource : {task.title} dans le module {module.title}",
+            sender_id = current_user.id,
+            is_read = False
+        )
+        db.add(new_notification) 
+
+
     db.commit()
     db.refresh(task)
     
-    return {"message": "Task updated successfully", "task": task}
+    return {"message": "Task updated successfully and notifications sent", "task": task}
 @task_router.delete("/remove/{resource_id}")
 def remove_resource(resource_id : int ,current_user=Depends(RoleChecker("Professor")) , db : Session=Depends(get_db)):
     task = db.query(Task).filter(Task.id == resource_id).first()
