@@ -26,50 +26,50 @@ from utils.hash import get_password_hash, verify_password
 auth_router = APIRouter(prefix="/users")
 
 
-@auth_router.post("/add")
-def store(request: EmailRequest, db: Session = Depends(get_db)):
+# @auth_router.post("/add")
+# def store(request: EmailRequest, db: Session = Depends(get_db)):
 
-    domain = request.email.split("@")[-1]
+#     domain = request.email.split("@")[-1]
 
-    allowed_domains = [
-    "prof.edu.ac.ma",
-    "student.edu.ac.ma",
-    ]   
+#     allowed_domains = [
+#     "prof.edu.ac.ma",
+#     "student.edu.ac.ma",
+#     ]   
 
-    if domain not in allowed_domains:
-        raise HTTPException(
-        status_code=400,
-        detail="Invalid email domain"
-    )
+#     if domain not in allowed_domains:
+#         raise HTTPException(
+#         status_code=400,
+#         detail="Invalid email domain"
+#     )
 
-    user = db.query(User).filter(User.email == request.email).first()
+#     user = db.query(User).filter(User.email == request.email).first()
 
-    if user:
-        raise HTTPException(
-            status_code=400,
-            detail="Email already exists"
-        )
+#     if user:
+#         raise HTTPException(
+#             status_code=400,
+#             detail="Email already exists"
+#         )
 
-    if domain == "prof.edu.ac.ma":
-        role = "Professor"
+#     if domain == "prof.edu.ac.ma":
+#         role = "Professor"
 
-    elif domain == "prof.edu.ac.ma":
-        role = "Student"
+#     elif domain == "prof.edu.ac.ma":
+#         role = "Student"
     
 
 
-    new_user = User(
-        email = request.email,
-        role = role
-    )
-    db.add(new_user)
-    db.commit()
-    db.refresh(new_user)
+#     new_user = User(
+#         email = request.email,
+#         role = role
+#     )
+#     db.add(new_user)
+#     db.commit()
+#     db.refresh(new_user)
 
-    return {
-        "message": "User added successfully",
-        "role": role
-    }
+#     return {
+#         "message": "User added successfully",
+#         "role": role
+#     }
 
 
 @auth_router.post("/send-otp")
@@ -203,7 +203,7 @@ def login(request: LoginRequest,response : Response ,db: Session = Depends(get_d
             "birth_date" : user.student_data.birth_date.isoformat()
         }
     )
-    else :
+    elif(user.role.value == "Professor") :
         token = access_token(
         {
             "id": user.id,
@@ -215,7 +215,19 @@ def login(request: LoginRequest,response : Response ,db: Session = Depends(get_d
             "birth_date" : user.prof_data.birth_date.isoformat(),
             "phone_number" : user.prof_data.phone_number
         }
+    
     )
+    elif user.role.value == "Admin":
+       
+        token = access_token({
+            "id": user.id,
+            "email": user.email,
+            "role": user.role.value,
+            "first_name": "Admin",     
+            "last_name": "System"
+        })
+    else:
+        raise HTTPException(status_code=400, detail="Invalid User Role")
     response.set_cookie(
         key="access_token",
         value=token,
@@ -239,31 +251,41 @@ def get_me(current_user_id: int = Depends(get_current_user), db: Session = Depen
     
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
-    if user.role.value == "Student" :    
+        
+    if user.role.value == "Student":    
         return {
             "id": user.id,
             "email": user.email,
             "role": user.role.value,
-            "first_name": user.student_data.first_name,
-            "last_name": user.student_data.last_name,
-            "gender": user.student_data.gender.value,
-            "birth_date" : user.student_data.birth_date.isoformat()
+            "first_name": user.student_data.first_name if user.student_data else "",
+            "last_name": user.student_data.last_name if user.student_data else "",
+            "gender": user.student_data.gender.value if user.student_data and user.student_data.gender else "",
+            "birth_date": user.student_data.birth_date.isoformat() if user.student_data and user.student_data.birth_date else None
+        }
         
-    }
-    else : 
+    elif user.role.value == "Professor": 
         return {
             "id": user.id,
             "email": user.email,
             "role": user.role.value,
-            "first_name": user.prof_data.first_name,
-            "last_name": user.prof_data.last_name,
-            "gender": user.prof_data.gender.value,
-            "birth_date" : user.prof_data.birth_date.isoformat(),
-            "phone_number" : user.prof_data.phone_number
+            "first_name": user.prof_data.first_name if user.prof_data else "",
+            "last_name": user.prof_data.last_name if user.prof_data else "",
+            "gender": user.prof_data.gender.value if user.prof_data and user.prof_data.gender else "",
+            "birth_date": user.prof_data.birth_date.isoformat() if user.prof_data and user.prof_data.birth_date else None,
+            "phone_number": user.prof_data.phone_number if user.prof_data else ""
+        }
+
+    elif user.role.value == "Admin":
+        return {
+            "id": user.id,
+            "email": user.email,
+            "role": user.role.value,
+            "first_name": "NIKOLA",
+            "last_name": "TESLA",
+        }
         
-    }
-
-
+    else:
+        raise HTTPException(status_code=400, detail="Invalid User Role")
 @auth_router.post("/forget-password")
 async def forget_password(request : EmailRequest , db : Session = Depends(get_db)) :
     user = db.query(User).filter(User.email == request.email).first()

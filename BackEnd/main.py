@@ -21,6 +21,8 @@ from controllers.taskController import task_router
 from controllers.studentController import student_router
 from controllers.completedTaskController import completed_task_router
 from controllers.notificationController import notification_router
+from controllers.adminController import admin_router
+from controllers.userController import user_router
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
@@ -48,3 +50,5 @@ app.include_router(professor_router)
 app.include_router(task_router)
 app.include_router(student_router)
 app.include_router(notification_router)
+app.include_router(admin_router)
+app.include_router(user_router)

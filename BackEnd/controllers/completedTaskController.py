@@ -61,7 +61,11 @@ def get_student_todo(current_user=Depends(RoleChecker("Student")), db: Session =
 
 
 @completed_task_router.post("/submit")
-def submit_task(request: CompleteTaskRequest, current_user = Depends(RoleChecker("Student")), db: Session = Depends(get_db)): 
+def submit_task(
+    request: CompleteTaskRequest, 
+    current_user = Depends(RoleChecker("Student")), 
+    db: Session = Depends(get_db)
+): 
     task = db.query(Task).filter(Task.id == request.task_id).first()
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
@@ -87,19 +91,25 @@ def submit_task(request: CompleteTaskRequest, current_user = Depends(RoleChecker
     db.commit()
     db.refresh(new_task)
 
-    if request.comment : 
-        tas = db.query(Task).filter(Task.id == request.task_id).first()
-        module = db.query(Module).filter(Module.id == tas.module_id).first()
-        professor_user_id = db.query(Professor).filter(Professor.id == module.professor_id).first().user_id
-        new_notification = Notification(
-            user_id = professor_user_id,
-            title = "New Student FeedBack",
-            message = f"A Student Left A Comment on : {tas.title}"
-        )
-        db.add(new_notification)
-        db.commit()
+    if request.comment: 
+        module = db.query(Module).filter(Module.id == task.module_id).first()
+        professor = db.query(Professor).filter(Professor.id == module.professor_id).first()
+        
+        if professor:
+            new_notification = Notification(
+                receiver_id = professor.user_id, 
+                sender_id = current_user.id,     
+                title = "New Student FeedBack",
+                message = f"A Student left a comment on: {task.title}", 
+            )
+            db.add(new_notification)
+            db.commit()
 
-    return {"message": "Great job! Progress saved.", "task": new_task , "notification" : "notification send to profs"}
+    return {
+        "message": "Great job! Progress saved.", 
+        "task": new_task, 
+        "notification": "Notification sent to professor" if request.comment else "No notification sent"
+    }
 
 
 

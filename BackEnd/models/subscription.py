@@ -1,5 +1,6 @@
 from datetime import datetime
-from sqlalchemy import Boolean, Column, DateTime, Integer , ForeignKey
+from os import name
+from sqlalchemy import Boolean, Column, DateTime, Integer , ForeignKey , UniqueConstraint
 from database.connexion import Base
 from sqlalchemy.orm import relationship
 
@@ -17,3 +18,6 @@ class Subscription(Base) :
     
     student = relationship("Student" , back_populates="subscriptions")
     professor = relationship("Professor" , back_populates="subscriptions")
+    __table_args__ = (
+        UniqueConstraint('student_id', 'professor_id', name='unique_student_professor'),
+    )

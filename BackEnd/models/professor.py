@@ -17,7 +17,7 @@ class Professor(Base) :
     birth_date = Column(Date , nullable=True  , index = True  )
     gender = Column(Enum(ProfessorGender) , nullable=True)
     phone_number = Column(String , nullable=True)
-    user_id = Column(Integer , ForeignKey("users.id" , ondelete="CASCADE"))
+    user_id = Column(Integer , ForeignKey("users.id" , ondelete="CASCADE") , unique=True)
     
     user = relationship("User", back_populates="prof_data")
     modules = relationship("Module", back_populates="professor")

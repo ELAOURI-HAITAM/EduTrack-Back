@@ -5,6 +5,7 @@ from sqlalchemy.orm import relationship
 class UserRole(enum.Enum):
     Professor = "Professor"
     Student = "Student"
+    Admin = "Admin"
 
 
 class User(Base):

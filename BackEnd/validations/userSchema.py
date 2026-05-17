@@ -1,8 +1,13 @@
+from typing import Optional
 from pydantic import BaseModel
 from datetime import date
 
 
-class EmailRequest(BaseModel):
+class createUserRequest(BaseModel):
+    email : str
+    role : str
+
+class EmailRequest(BaseModel) : 
     email : str
 
 
@@ -36,3 +41,13 @@ class LoginRequest(BaseModel) :
 class ChangePasswordRequest(BaseModel) :
     new_password : str
     confirm_password : str
+
+
+class UpdateUserInfosRequest(BaseModel) : 
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    gender: Optional[str] = None
+    role : Optional[str] = None
+    birth_date: Optional[date] = None
+    phone_number: Optional[str] = None
+    email: Optional[str] = None 

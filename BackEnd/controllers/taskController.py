@@ -61,7 +61,8 @@ def upload_file(
         student_user_id = db.query(Student).filter(Student.id == sub.student_id).first().user_id
         professor_name = f"{sub.professor.first_name} {sub.professor.last_name}"
         new_notification = Notification(
-            user_id = student_user_id,
+            receiver_id = student_user_id,
+            sender_id = current_user.id,
             title = "New Task Added",
             message = f"New Assignment Added From {professor_name}"
         )

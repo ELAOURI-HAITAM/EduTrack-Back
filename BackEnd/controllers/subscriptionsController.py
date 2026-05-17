@@ -120,7 +120,7 @@ def professor_subscribers(
         joinedload(Subscription.student)
     ).filter(
         Subscription.professor_id == current_user.prof_data.id
-    ).all()
+    ).order_by(Subscription.id.asc()).all()
 
     return [
         {

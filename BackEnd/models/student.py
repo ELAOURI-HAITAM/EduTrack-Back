@@ -16,7 +16,7 @@ class Student(Base) :
     last_name = Column(String , index =True , nullable=True)
     birth_date = Column(Date , nullable=True  , index = True  )
     gender = Column(Enum(StudentGender) , nullable=True)
-    user_id = Column(Integer , ForeignKey("users.id" , ondelete="CASCADE"))
+    user_id = Column(Integer , ForeignKey("users.id" , ondelete="CASCADE") , unique=True)
     
     user = relationship("User", back_populates="student_data")
     subscriptions = relationship("Subscription", back_populates="student")
