@@ -105,7 +105,8 @@ def verify(request: VerifyOTPRequest,response : Response, db: Session = Depends(
     if not user.otp_expires_at or user.otp_expires_at < datetime.utcnow():
         raise HTTPException(status_code=404, detail="Code expired")
 
-    
+    if user.password : 
+        raise HTTPException(status_code=404, detail="You Alreafy Have An Account")
     if user.otp != request.otp:
         raise HTTPException(status_code=400, detail="Invalide Code")
 
