@@ -1,12 +1,14 @@
 
 
 
-
-from fastapi import APIRouter, Depends, HTTPException
+import pandas as pd
+import io
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
 
 from database.connexion import get_db
 from middleware.role import RoleChecker
+from models.notification import Notification
 from models.user import User
 from validations.userSchema import UpdateUserInfosRequest, createUserRequest
 
@@ -141,6 +143,9 @@ def delete_user(user_id : int , current_user = Depends(RoleChecker("Admin")) , d
     user = db.query(User).filter(User.id == user_id).first()
     if  not user : 
         raise HTTPException(status_code=404 , detail="User Not Found")
+    db.query(Notification).filter(
+        (Notification.sender_id == user.id) | (Notification.receiver_id == user.id)
+    ).delete(synchronize_session=False)
     db.delete(user)
     db.commit()
 
@@ -175,3 +180,73 @@ def get_user_details(user_id : int , current_user = Depends(RoleChecker("Admin")
         "role" : user.role.value,
         "email" : user.email
     }
+
+
+@user_router.post("/import-excel")
+async def import_users_from_excel(
+    file: UploadFile = File(...),
+    current_user = Depends(RoleChecker("Admin")), 
+    db: Session = Depends(get_db)
+):
+    if not file.filename.endswith(('.xlsx', '.xls')):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="just excel files (xls , xlsx)"
+        )
+
+    try:
+        contents = await file.read()
+        df = pd.read_excel(io.BytesIO(contents))
+        
+        df.columns = [str(col).strip().lower() for col in df.columns]
+
+        if 'email' not in df.columns or 'role' not in df.columns:
+            raise HTTPException(
+                status_code=404, 
+                detail="email and role column not found !!"
+            )
+
+        success_count = 0
+        skipped_emails = []
+
+        for index, row in df.iterrows():
+            email = str(row['email']).strip()
+            role = str(row['role']).strip()
+
+            if pd.isna(row['email']) or pd.isna(row['role']):
+                continue
+
+            existing_user = db.query(User).filter(User.email == email).first()
+            if existing_user:
+                skipped_emails.append({"email": email, "reason": "already exists"})
+                continue 
+
+            if role not in ["Student", "Professor"]:
+                skipped_emails.append({"email": email, "reason": f"this role :  '{role}' not usable "})
+                continue
+
+            new_user = User(
+                email=email,
+                role=role,
+                password=None, 
+                otp=None,
+                otp_expires_at=None
+            )
+            db.add(new_user)
+            success_count += 1
+
+        if success_count > 0:
+            db.commit()
+
+        return {
+            "message": "Users Are Created Successfully",
+            "created_users_count": success_count,
+            "skipped_users": skipped_emails
+        }
+
+    except Exception as e:
+        db.rollback() 
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail=f"Something Went Wrong {str(e)}"
+        ) 

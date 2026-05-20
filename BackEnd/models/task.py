@@ -19,7 +19,7 @@ class Task(Base) :
     file_url = Column(String)
     task_type = Column(Enum(TaskType))
     estimated_minutes = Column(Integer)
-    module_id = Column(Integer , ForeignKey("modules.id"))
+    module_id = Column(Integer , ForeignKey("modules.id" ,ondelete="CASCADE"))
     created_at = Column(DateTime , default=datetime.utcnow())
     
     module = relationship("Module" , back_populates="tasks")

@@ -282,8 +282,8 @@ def get_me(current_user_id: int = Depends(get_current_user), db: Session = Depen
             "id": user.id,
             "email": user.email,
             "role": user.role.value,
-            "first_name": "NIKOLA",
-            "last_name": "TESLA",
+            "first_name": "SAID",
+            "last_name": "CHOUCHF",
         }
         
     else:
